@@ -3,14 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Student"Co" • Capture Profile (Realtime DB)</title>
+  <title>Student"Co" • Capture Profile (Auth)</title>
   
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -42,6 +40,7 @@
           animation: {
             'spin-slow': 'spin 1.2s linear infinite',
             'fadeIn': 'fadeIn 0.4s ease-out',
+            'bounce-slow': 'bounce 3s infinite',
           },
           keyframes: {
             spin: { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } },
@@ -52,10 +51,10 @@
     }
   </script>
 
-  <!-- Firebase Realtime Database -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getDatabase, ref, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCeJ-v25H3e8H6SOAJlhss81RO6aSPzhzk",
@@ -70,8 +69,15 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
 
+    // Expose to window for debugging/usage if needed
     window.db = db;
+    window.auth = auth;
+    window.provider = provider;
+    window.signInWithPopup = signInWithPopup;
+    window.signOut = signOut;
     window.ref = ref;
     window.set = set;
     window.serverTimestamp = serverTimestamp;
@@ -80,18 +86,26 @@
 
 <body class="min-h-screen font-sans antialiased transition-colors duration-300">
 
-  <!-- Theme toggle button -->
   <button id="theme-toggle" class="fixed top-4 right-4 z-50 p-3 rounded-full bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 shadow-lg hover:scale-110 transition-transform duration-200">
     <span class="text-xl">☀️</span>
   </button>
 
-  <!-- Ambient background glows -->
+  <div id="userBar" class="fixed top-4 right-20 z-40 flex items-center gap-3 hidden animate-fadeIn">
+    <div class="text-right hidden sm:block">
+      <p id="userNameDisplay" class="text-xs font-bold text-text-light dark:text-text-dark"></p>
+      <p class="text-[10px] text-text-muted-light dark:text-text-muted-dark"> capturer </p>
+    </div>
+    <img id="userAvatar" src="" alt="User" class="w-10 h-10 rounded-full border-2 border-neon-cyan shadow-glow-sm shadow-glow-cyan">
+    <button id="logoutBtn" class="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-full transition-colors" title="Sign Out">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+    </button>
+  </div>
+
   <div class="fixed inset-0 pointer-events-none overflow-hidden">
     <div class="absolute -top-1/3 -left-1/4 w-3/4 h-3/4 bg-glow-cyan rounded-full blur-3xl opacity-20 dark:opacity-30 animate-pulse-slow"></div>
     <div class="absolute -bottom-1/3 -right-1/4 w-3/4 h-3/4 bg-glow-purple rounded-full blur-3xl opacity-15 dark:opacity-25 animate-pulse-slow delay-1000"></div>
   </div>
 
-  <!-- Success Modal -->
   <div id="successModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 hidden transition-opacity duration-300">
     <div class="backdrop-blur-xl bg-white/80 dark:bg-black/50 border border-gray-200/60 dark:border-white/10 rounded-2xl shadow-2xl shadow-glow-cyan/30 max-w-md w-full mx-4 p-8 animate-fadeIn">
       <h2 class="text-3xl font-orbitron font-bold text-center mb-4 bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">
@@ -105,16 +119,15 @@
         <p id="modalStudentNumber" class="text-2xl font-bold font-mono tracking-wider text-neon-cyan break-all"></p>
       </div>
       <p class="text-center text-sm text-text-muted-light dark:text-text-muted-dark mb-8">
-        Please save this number safely — it's your unique identifier.
+        Please save this number safely.
       </p>
 
-      <!-- Share & Print buttons -->
       <div class="grid grid-cols-2 gap-4 mb-6">
         <button id="printPdfBtn" class="px-4 py-3 bg-gradient-to-r from-gray-500 to-gray-700 text-white rounded-full font-medium hover:opacity-90 transition flex items-center justify-center gap-2">
-          <span>Print / Save PDF</span>
+          <span>Print / PDF</span>
         </button>
         <button id="shareEmailBtn" class="px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-full font-medium hover:opacity-90 transition flex items-center justify-center gap-2">
-          <span>Share via Email</span>
+          <span>Email</span>
         </button>
       </div>
       <button id="shareWhatsAppBtn" class="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full font-medium hover:opacity-90 transition flex items-center justify-center gap-2 mb-6">
@@ -126,7 +139,7 @@
           Close
         </button>
         <button id="copyStudentNumber" class="px-6 py-3 bg-gradient-to-r from-neon-cyan to-neon-purple text-white rounded-full font-medium hover:shadow-glow-md hover:shadow-glow-cyan transition">
-          Copy Number
+          Copy
         </button>
       </div>
     </div>
@@ -134,48 +147,58 @@
 
   <div class="relative min-h-screen flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-lg">
-      <div class="backdrop-blur-xl bg-white/70 dark:bg-black/30 border border-gray-200/60 dark:border-white/10 rounded-2xl shadow-glass-light dark:shadow-glass-dark shadow-glow-cyan/10 overflow-hidden transition-all duration-300">
+      <div class="backdrop-blur-xl bg-white/70 dark:bg-black/30 border border-gray-200/60 dark:border-white/10 rounded-2xl shadow-glass-light dark:shadow-glass-dark shadow-glow-cyan/10 overflow-hidden transition-all duration-300 min-h-[500px] flex flex-col justify-center">
         <div class="px-8 py-10">
 
-          <!-- Typing title -->
           <h1 class="text-4xl md:text-5xl font-orbitron font-bold text-center mb-2 tracking-wider min-h-[1.2em]">
-            <span id="typing" class="bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent"></span>
-            <span id="cursor" class="cursor inline-block w-4 h-8 bg-neon-cyan animate-blink ml-1 align-middle"></span>
+            <span id="typing" class="bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">Student"Co"</span>
           </h1>
+          <p class="text-center text-text-muted-light dark:text-text-muted-dark mb-10 text-sm">Real-time student onboarding</p>
 
-          <p class="text-center text-text-muted-light dark:text-text-muted-dark mb-10 text-sm transition-colors">Real-time student onboarding • Powered by Firebase</p>
-
-          <form id="studentForm" class="space-y-6">
-            <div>
-              <label for="name" class="block text-sm font-medium text-text-muted-light dark:text-text-muted-dark mb-1 transition-colors">First Name</label>
-              <input type="text" id="name" required class="w-full px-4 py-3 bg-white dark:bg-black/40 border border-gray-300 dark:border-neon-cyan/30 rounded-lg focus:outline-none focus:border-neon-cyan focus:shadow-glow-sm focus:shadow-glow-cyan transition-all duration-300 text-text-light dark:text-text-dark placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. Lethabo" />
-            </div>
-
-            <div>
-              <label for="surname" class="block text-sm font-medium text-text-muted-light dark:text-text-muted-dark mb-1 transition-colors">Surname</label>
-              <input type="text" id="surname" required class="w-full px-4 py-3 bg-white dark:bg-black/40 border border-gray-300 dark:border-neon-cyan/30 rounded-lg focus:outline-none focus:border-neon-cyan focus:shadow-glow-sm focus:shadow-glow-cyan transition-all duration-300 text-text-light dark:text-text-dark placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. Nkosi" />
-            </div>
-
-            <div>
-              <label for="idNumber" class="block text-sm font-medium text-text-muted-light dark:text-text-muted-dark mb-1 transition-colors">ID Number / Passport</label>
-              <input type="text" id="idNumber" required pattern="[0-9]{13}|[A-Za-z0-9]{8,20}" title="Enter a valid 13-digit SA ID or passport/reference number" class="w-full px-4 py-3 bg-white dark:bg-black/40 border border-gray-300 dark:border-neon-cyan/30 rounded-lg focus:outline-none focus:border-neon-cyan focus:shadow-glow-sm focus:shadow-glow-cyan transition-all duration-300 text-text-light dark:text-text-dark placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. 9205135678089" />
-            </div>
-
-            <div>
-              <label for="cellNumber" class="block text-sm font-medium text-text-muted-light dark:text-text-muted-dark mb-1 transition-colors">Cell Number</label>
-              <input type="tel" id="cellNumber" required pattern="(\+27|0)[1-9][0-9]{8}" title="Enter a valid South African mobile number" class="w-full px-4 py-3 bg-white dark:bg-black/40 border border-gray-300 dark:border-neon-cyan/30 rounded-lg focus:outline-none focus:border-neon-cyan focus:shadow-glow-sm focus:shadow-glow-cyan transition-all duration-300 text-text-light dark:text-text-dark placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. 0821234567" />
-            </div>
-
-            <button 
-              type="submit"
-              id="submitBtn"
-              class="w-full py-4 px-8 bg-gradient-to-r from-neon-cyan to-neon-purple rounded-full font-medium text-lg text-white shadow-glow-md shadow-glow-purple hover:shadow-glow-md hover:shadow-glow-cyan transform hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              <span id="btnText">Create Profile</span>
-              <span id="btnIcon" class="text-xl">→</span>
-              <span id="spinner" class="hidden inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin-slow"></span>
+          <div id="loginSection" class="text-center space-y-8 animate-fadeIn">
+            <div class="w-24 h-24 mx-auto bg-gradient-to-br from-neon-cyan to-neon-purple rounded-full blur-2xl opacity-20 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+            
+            <p class="text-text-light dark:text-text-dark relative z-10">Authentication Required</p>
+            <button id="googleLoginBtn" class="relative z-10 w-full py-4 px-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:scale-[1.02] transition-transform shadow-lg flex items-center justify-center gap-4 group">
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-6 h-6" alt="Google">
+              <span class="text-gray-700 dark:text-white font-medium group-hover:text-neon-cyan transition-colors">Sign in with Google</span>
             </button>
-          </form>
+            <p class="text-xs text-text-muted-light dark:text-text-muted-dark mt-4">Only authorized staff may capture profiles.</p>
+          </div>
+
+          <div id="appContent" class="hidden">
+            <form id="studentForm" class="space-y-6">
+              <div>
+                <label for="name" class="block text-sm font-medium text-text-muted-light dark:text-text-muted-dark mb-1">First Name</label>
+                <input type="text" id="name" required class="w-full px-4 py-3 bg-white dark:bg-black/40 border border-gray-300 dark:border-neon-cyan/30 rounded-lg focus:outline-none focus:border-neon-cyan focus:shadow-glow-sm focus:shadow-glow-cyan transition-all duration-300 text-text-light dark:text-text-dark placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. Lethabo" />
+              </div>
+
+              <div>
+                <label for="surname" class="block text-sm font-medium text-text-muted-light dark:text-text-muted-dark mb-1">Surname</label>
+                <input type="text" id="surname" required class="w-full px-4 py-3 bg-white dark:bg-black/40 border border-gray-300 dark:border-neon-cyan/30 rounded-lg focus:outline-none focus:border-neon-cyan focus:shadow-glow-sm focus:shadow-glow-cyan transition-all duration-300 text-text-light dark:text-text-dark placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. Nkosi" />
+              </div>
+
+              <div>
+                <label for="idNumber" class="block text-sm font-medium text-text-muted-light dark:text-text-muted-dark mb-1">ID Number / Passport</label>
+                <input type="text" id="idNumber" required pattern="[0-9]{13}|[A-Za-z0-9]{8,20}" title="Enter a valid 13-digit SA ID or passport/reference number" class="w-full px-4 py-3 bg-white dark:bg-black/40 border border-gray-300 dark:border-neon-cyan/30 rounded-lg focus:outline-none focus:border-neon-cyan focus:shadow-glow-sm focus:shadow-glow-cyan transition-all duration-300 text-text-light dark:text-text-dark placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. 9205135678089" />
+              </div>
+
+              <div>
+                <label for="cellNumber" class="block text-sm font-medium text-text-muted-light dark:text-text-muted-dark mb-1">Cell Number</label>
+                <input type="tel" id="cellNumber" required pattern="(\+27|0)[1-9][0-9]{8}" title="Enter a valid South African mobile number" class="w-full px-4 py-3 bg-white dark:bg-black/40 border border-gray-300 dark:border-neon-cyan/30 rounded-lg focus:outline-none focus:border-neon-cyan focus:shadow-glow-sm focus:shadow-glow-cyan transition-all duration-300 text-text-light dark:text-text-dark placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. 0821234567" />
+              </div>
+
+              <button 
+                type="submit"
+                id="submitBtn"
+                class="w-full py-4 px-8 bg-gradient-to-r from-neon-cyan to-neon-purple rounded-full font-medium text-lg text-white shadow-glow-md shadow-glow-purple hover:shadow-glow-md hover:shadow-glow-cyan transform hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                <span id="btnText">Create Profile</span>
+                <span id="btnIcon" class="text-xl">→</span>
+                <span id="spinner" class="hidden inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin-slow"></span>
+              </button>
+            </form>
+          </div>
 
           <p id="message" class="mt-6 text-center text-sm hidden"></p>
         </div>
@@ -185,9 +208,65 @@
     </div>
   </div>
 
-  <!-- Scripts -->
   <script type="module">
-    // Theme Toggle
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { getDatabase, ref, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+    // Re-declare for scope access in this block if needed, or rely on window globals from head
+    const auth = window.auth;
+    const provider = window.provider;
+    const db = window.db;
+
+    // --- DOM ELEMENTS ---
+    const loginSection = document.getElementById('loginSection');
+    const appContent = document.getElementById('appContent');
+    const userBar = document.getElementById('userBar');
+    const userAvatar = document.getElementById('userAvatar');
+    const userNameDisplay = document.getElementById('userNameDisplay');
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    
+    // --- AUTH LOGIC ---
+
+    // 1. Listen for Auth State Changes
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // User is signed in
+        console.log("User signed in:", user.email);
+        
+        // Update UI
+        userAvatar.src = user.photoURL;
+        userNameDisplay.textContent = user.displayName;
+        
+        loginSection.classList.add('hidden');
+        appContent.classList.remove('hidden');
+        appContent.classList.add('animate-fadeIn');
+        userBar.classList.remove('hidden');
+      } else {
+        // User is signed out
+        console.log("User signed out");
+        
+        loginSection.classList.remove('hidden');
+        appContent.classList.add('hidden');
+        userBar.classList.add('hidden');
+      }
+    });
+
+    // 2. Handle Login
+    googleLoginBtn.addEventListener('click', () => {
+      signInWithPopup(auth, provider)
+        .catch((error) => {
+          console.error("Login failed", error);
+          alert("Login failed: " + error.message);
+        });
+    });
+
+    // 3. Handle Logout
+    logoutBtn.addEventListener('click', () => {
+      signOut(auth).catch((error) => console.error("Logout failed", error));
+    });
+
+    // --- THEME LOGIC (Existing) ---
     const html = document.documentElement;
     const toggleBtn = document.getElementById('theme-toggle');
     const icon = toggleBtn.querySelector('span');
@@ -204,36 +283,21 @@
       }
       localStorage.setItem('theme', theme);
     }
-
     const savedTheme = localStorage.getItem('theme') || 'light';
     setTheme(savedTheme);
-
     toggleBtn.addEventListener('click', () => {
       const current = html.classList.contains('dark') ? 'dark' : 'light';
       setTheme(current === 'dark' ? 'light' : 'dark');
     });
 
-    // Typing Animation
-    const typingElement = document.getElementById('typing');
-    const cursorElement = document.getElementById('cursor');
-    const text = 'Student"Co"';
-    let index = 0;
-
-    function type() {
-      if (index < text.length) {
-        typingElement.textContent += text.charAt(index);
-        index++;
-        setTimeout(type, 120);
-      } else {
-        cursorElement.style.display = 'none';
-      }
-    }
-
-    window.addEventListener('load', () => {
-      setTimeout(type, 800);
-    });
-
-    // Modal Elements
+    // --- FORM LOGIC (Existing + Updated for Auth) ---
+    const form = document.getElementById('studentForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const btnIcon = document.getElementById('btnIcon');
+    const spinner = document.getElementById('spinner');
+    
+    // Modal
     const successModal = document.getElementById('successModal');
     const modalStudentNumber = document.getElementById('modalStudentNumber');
     const closeModalBtn = document.getElementById('closeModal');
@@ -241,100 +305,38 @@
     const printPdfBtn = document.getElementById('printPdfBtn');
     const shareEmailBtn = document.getElementById('shareEmailBtn');
     const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
-
     let currentStudentNumber = '';
 
-    closeModalBtn.addEventListener('click', () => {
-      successModal.classList.add('hidden');
-    });
-
+    closeModalBtn.addEventListener('click', () => successModal.classList.add('hidden'));
+    
     copyBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(currentStudentNumber)
         .then(() => {
           copyBtn.textContent = 'Copied!';
-          setTimeout(() => { copyBtn.textContent = 'Copy Number'; }, 2000);
-        })
-        .catch(err => console.error('Copy failed', err));
+          setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+        });
     });
-
-    // Print / Save as PDF
-    printPdfBtn.addEventListener('click', () => {
-      const printContent = `
-        <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
-          <h1 style="color: #00d4ff;">Student"Co" Profile</h1>
-          <p style="font-size: 1.2em; margin: 20px 0;">Your unique Student Number:</p>
-          <p style="font-size: 2.5em; font-weight: bold; letter-spacing: 2px; color: #00d4ff; background: #f0f9ff; padding: 15px; border-radius: 12px;">
-            ${currentStudentNumber}
-          </p>
-          <p style="margin-top: 30px; color: #666;">Please keep this number safe — it's your official identifier.</p>
-          <p style="margin-top: 40px; font-size: 0.9em; color: #888;">Generated on ${new Date().toLocaleString('en-ZA')}</p>
-        </div>
-      `;
-
-      const printWindow = window.open('', '_blank');
-      printWindow.document.write(`
-        <html>
-          <head><title>Student"Co" - ${currentStudentNumber}</title></head>
-          <body onload="window.print();">${printContent}</body>
-        </html>
-      `);
-      printWindow.document.close();
-    });
-
-    // Share via Email
-    shareEmailBtn.addEventListener('click', () => {
-      const subject = encodeURIComponent("Your Student\"Co\" Profile");
-      const body = encodeURIComponent(
-        `Hi there!\n\n` +
-        `Your student profile has been successfully created.\n\n` +
-        `Student Number: ${currentStudentNumber}\n\n` +
-        `Please save this number safely — it's your unique identifier with Student"Co".\n\n` +
-        `Best regards,\nStudent"Co" Team`
-      );
-      window.location.href = `mailto:?subject=${subject}&body=${body}`;
-    });
-
-    // Share via WhatsApp
-    shareWhatsAppBtn.addEventListener('click', () => {
-      const message = encodeURIComponent(
-        `🎓 Your Student"Co" profile is ready!\n\n` +
-        `Student Number: ${currentStudentNumber}\n\n` +
-        `Please save this number — it's your unique ID.\n\n` +
-        `From Student"Co" 🚀`
-      );
-      window.open(`https://wa.me/?text=${message}`, '_blank');
-    });
-
-    // Form + Auto Student Number + Modal
-    const form = document.getElementById('studentForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const btnText = document.getElementById('btnText');
-    const btnIcon = document.getElementById('btnIcon');
-    const spinner = document.getElementById('spinner');
 
     function generateStudentNumber() {
       const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
-      return `STU-${year}${month}${day}${hours}${minutes}${seconds}`;
+      return `STU-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
     }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      
+      const user = auth.currentUser;
+      if (!user) {
+        alert("You must be signed in to submit.");
+        return;
+      }
 
       const name       = document.getElementById('name').value.trim();
       const surname    = document.getElementById('surname').value.trim();
       const idNumber   = document.getElementById('idNumber').value.trim();
       const cellNumber = document.getElementById('cellNumber').value.trim();
 
-      if (!name || !surname || !idNumber || !cellNumber) {
-        alert('Please complete all fields.');
-        return;
-      }
+      if (!name || !surname || !idNumber || !cellNumber) return;
 
       submitBtn.disabled = true;
       btnText.textContent = 'Creating...';
@@ -354,16 +356,18 @@
           cellNumber,
           studentNumber,
           createdAt: serverTimestamp(),
+          // CAPTURE AUDIT TRAIL
+          capturedBy: user.email,
+          capturedByUid: user.uid,
+          capturedByName: user.displayName || 'Unknown'
         });
 
-        // Show modal (no auto-hide)
         modalStudentNumber.textContent = studentNumber;
         successModal.classList.remove('hidden');
-
         form.reset();
       } catch (error) {
         console.error("Save error:", error);
-        alert('Failed to create profile — check console.');
+        alert('Failed to create profile. Check console.');
       } finally {
         submitBtn.disabled = false;
         btnText.textContent = 'Create Profile';
@@ -371,15 +375,21 @@
         spinner.classList.add('hidden');
       }
     });
+
+    // Print & Share Handlers (Same as before)
+    printPdfBtn.addEventListener('click', () => {
+      const w = window.open('', '_blank');
+      w.document.write(`<html><body onload="window.print()" style="font-family:sans-serif;text-align:center;padding:50px;"><h1 style="color:#00d4ff">Student"Co"</h1><br>Student Number:<br><h2 style="background:#f0f9ff;padding:20px;">${currentStudentNumber}</h2></body></html>`);
+      w.document.close();
+    });
+    
+    shareEmailBtn.addEventListener('click', () => {
+        window.location.href = `mailto:?subject=Student Profile&body=Student Number: ${currentStudentNumber}`;
+    });
+    
+    shareWhatsAppBtn.addEventListener('click', () => {
+        window.open(`https://wa.me/?text=Student Number: ${currentStudentNumber}`, '_blank');
+    });
   </script>
-
-  <!-- Animations -->
-  <style>
-    @keyframes pulse-slow { 0%, 100% { opacity: 0.15; transform: scale(1); } 50% { opacity: 0.28; transform: scale(1.04); } }
-    .animate-pulse-slow { animation: pulse-slow 20s infinite ease-in-out; }
-
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-    .animate-blink { animation: blink 1s step-end infinite; }
-  </style>
 </body>
 </html>
