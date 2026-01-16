@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Student Nexus • Capture Profile</title>
+  <title>Student Nexus • Capture Profile (Realtime DB)</title>
   
   <!-- Google Fonts - Futuristic + clean -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,11 +41,11 @@
     }
   </script>
 
-  <!-- Firebase SDKs -->
+  <!-- Firebase SDKs (Realtime Database modular) -->
   <script type="module">
     // Import Firebase modules
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+    import { getDatabase, ref, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCeJ-v25H3e8H6SOAJlhss81RO6aSPzhzk",
@@ -54,16 +54,17 @@
       storageBucket: "student-co-45e92.firebasestorage.app",
       messagingSenderId: "55508513562",
       appId: "1:55508513562:web:d38cc47b259ffecc9432a3",
-      measurementId: "G-1VVHXLGPF6"
+      measurementId: "G-1VVHXLGPF6",
+      databaseURL: "https://student-co-45e92-default-rtdb.firebaseio.com/"  // ← Add this! (see setup notes)
     };
 
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const db = getDatabase(app);
 
-    window.db = db;           // Expose for script access
-    window.addDoc = addDoc;   // Expose
-    window.collection = collection;
+    window.db = db;
+    window.ref = ref;
+    window.set = set;
     window.serverTimestamp = serverTimestamp;
   </script>
 </head>
@@ -77,16 +78,16 @@
 
   <div class="relative min-h-screen flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-lg">
-      <!-- Card with glassmorphism -->
+      <!-- Glassmorphism card -->
       <div class="backdrop-blur-xl bg-black/30 border border-white/10 rounded-2xl shadow-2xl shadow-glow-cyan/20 overflow-hidden">
         <div class="px-8 py-10">
           <h1 class="text-4xl font-orbitron font-bold text-center mb-2 tracking-wider bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">
             Student Nexus
           </h1>
-          <p class="text-center text-gray-400 mb-10 text-sm">Enter the future of your academic identity</p>
+          <p class="text-center text-gray-400 mb-10 text-sm">Real-time identity sync • Powered by Firebase Realtime DB</p>
 
           <form id="studentForm" class="space-y-6">
-            <!-- Name -->
+            <!-- First Name -->
             <div>
               <label for="name" class="block text-sm font-medium text-gray-300 mb-1">First Name</label>
               <input 
@@ -110,24 +111,24 @@
               />
             </div>
 
-            <!-- ID / Student Number -->
+            <!-- Student ID (used as key) -->
             <div>
-              <label for="studentId" class="block text-sm font-medium text-gray-300 mb-1">Student ID / National ID</label>
+              <label for="studentId" class="block text-sm font-medium text-gray-300 mb-1">Student ID</label>
               <input 
                 type="text" 
                 id="studentId" 
                 required
                 class="w-full px-4 py-3 bg-black/40 border border-neon-cyan/30 rounded-lg focus:outline-none focus:border-neon-cyan focus:shadow-glow-sm focus:shadow-glow-cyan transition-all duration-300 text-white placeholder-gray-500"
-                placeholder="e.g. 2005123456789 or STU-2026-0042"
+                placeholder="e.g. STU-2026-0042 or 2005123456789"
               />
             </div>
 
-            <!-- Submit Button -->
+            <!-- Submit -->
             <button 
               type="submit"
               class="w-full py-4 bg-gradient-to-r from-neon-cyan to-neon-purple rounded-lg font-medium text-lg shadow-glow-md shadow-glow-purple hover:shadow-glow-md hover:shadow-glow-cyan transform hover:scale-[1.02] transition-all duration-300"
             >
-              Launch Profile →
+              Sync Profile to Realtime Network →
             </button>
           </form>
 
@@ -135,11 +136,11 @@
         </div>
       </div>
 
-      <p class="text-center text-gray-500 text-xs mt-8">Student Co © 2026 • Powered by Firebase</p>
+      <p class="text-center text-gray-500 text-xs mt-8">Student Co © 2026 • Realtime Database Edition</p>
     </div>
   </div>
 
-  <!-- Form submission logic -->
+  <!-- Form logic with Realtime Database -->
   <script type="module">
     const form = document.getElementById('studentForm');
     const message = document.getElementById('message');
@@ -147,29 +148,32 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const name = document.getElementById('name').value.trim();
-      const surname = document.getElementById('surname').value.trim();
+      const name     = document.getElementById('name').value.trim();
+      const surname  = document.getElementById('surname').value.trim();
       const studentId = document.getElementById('studentId').value.trim();
 
       if (!name || !surname || !studentId) {
-        showMessage('Please fill in all fields.', 'text-red-400');
+        showMessage('Complete all fields to sync.', 'text-red-400');
         return;
       }
 
+      // Path: students/{studentId}
+      const studentRef = ref(db, `students/${studentId}`);
+
       try {
-        await addDoc(collection(db, "students"), {
+        await set(studentRef, {
           name,
           surname,
-          studentId,
+          studentId,           // stored for convenience
           createdAt: serverTimestamp(),
-          // You can add more later: grade, class, email, photoURL, etc.
+          // Add more later: grade, class, photoUrl, lastSync, etc.
         });
 
-        showMessage('Profile captured successfully! Welcome to the future.', 'text-neon-cyan');
+        showMessage('Profile synced in real-time! Welcome aboard.', 'text-neon-cyan');
         form.reset();
       } catch (error) {
-        console.error("Error adding document: ", error);
-        showMessage('Error saving data. Check console.', 'text-red-400');
+        console.error("Save error:", error);
+        showMessage('Sync failed — check console or rules.', 'text-red-400');
       }
     });
 
@@ -177,11 +181,11 @@
       message.textContent = text;
       message.className = `mt-6 text-center text-sm ${colorClass}`;
       message.classList.remove('hidden');
-      setTimeout(() => message.classList.add('hidden'), 6000);
+      setTimeout(() => message.classList.add('hidden'), 5000);
     }
   </script>
 
-  <!-- Subtle pulse animation -->
+  <!-- Pulse animation -->
   <style>
     @keyframes pulse-slow {
       0%, 100% { opacity: 0.2; transform: scale(1); }
