@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Student Nexus • Capture Profile (Realtime DB)</title>
+  <title>Student"Co" • Capture Profile (Realtime DB)</title>
   
-  <!-- Google Fonts - Futuristic + clean -->
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -22,28 +22,27 @@
             sans: ['Inter', 'system-ui', 'sans-serif'],
           },
           colors: {
-            'ambient-dark': '#0a0e1a',
-            'ambient-darker': '#05070f',
-            'neon-cyan': '#00f0ff',
-            'neon-purple': '#c084fc',
-            'glow-cyan': 'rgba(0, 240, 255, 0.15)',
-            'glow-purple': 'rgba(192, 132, 252, 0.12)',
+            'ambient-light': '#f8f9fc',
+            'ambient-lighter': '#ffffff',
+            'text-dark': '#1e293b',
+            'text-muted': '#64748b',
+            'neon-cyan': '#00d4ff',
+            'neon-purple': '#a855f7',
+            'glow-cyan': 'rgba(0, 212, 255, 0.18)',
+            'glow-purple': 'rgba(168, 85, 247, 0.15)',
           },
           boxShadow: {
             'glow-sm': '0 0 12px 2px var(--tw-shadow-color)',
             'glow-md': '0 0 25px 6px var(--tw-shadow-color)',
-          },
-          backgroundImage: {
-            'ambient-gradient': 'linear-gradient(135deg, #0a0e1a 0%, #120d1f 50%, #0a0e1a 100%)',
+            'glass': '0 10px 30px -10px rgba(0,0,0,0.1)',
           },
         }
       }
     }
   </script>
 
-  <!-- Firebase SDKs (Realtime Database modular) -->
+  <!-- Firebase Realtime Database -->
   <script type="module">
-    // Import Firebase modules
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getDatabase, ref, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
@@ -55,10 +54,9 @@
       messagingSenderId: "55508513562",
       appId: "1:55508513562:web:d38cc47b259ffecc9432a3",
       measurementId: "G-1VVHXLGPF6",
-      databaseURL: "https://student-co-45e92-default-rtdb.firebaseio.com/"  // ← Add this! (see setup notes)
+      databaseURL: "https://student-co-45e92-default-rtdb.firebaseio.com/"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
@@ -69,66 +67,65 @@
   </script>
 </head>
 
-<body class="bg-ambient-dark text-gray-100 min-h-screen font-sans antialiased">
-  <!-- Background ambient effect -->
+<body class="bg-ambient-light text-text-dark min-h-screen font-sans antialiased">
+  <!-- Ambient background glows (softer in light mode) -->
   <div class="fixed inset-0 pointer-events-none overflow-hidden">
-    <div class="absolute -top-1/3 -left-1/3 w-2/3 h-2/3 bg-glow-cyan rounded-full blur-3xl opacity-30 animate-pulse-slow"></div>
-    <div class="absolute -bottom-1/4 -right-1/4 w-3/4 h-3/4 bg-glow-purple rounded-full blur-3xl opacity-20 animate-pulse-slow delay-1000"></div>
+    <div class="absolute -top-1/3 -left-1/4 w-3/4 h-3/4 bg-glow-cyan rounded-full blur-3xl opacity-20 animate-pulse-slow"></div>
+    <div class="absolute -bottom-1/3 -right-1/4 w-3/4 h-3/4 bg-glow-purple rounded-full blur-3xl opacity-15 animate-pulse-slow delay-1000"></div>
   </div>
 
   <div class="relative min-h-screen flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-lg">
-      <!-- Glassmorphism card -->
-      <div class="backdrop-blur-xl bg-black/30 border border-white/10 rounded-2xl shadow-2xl shadow-glow-cyan/20 overflow-hidden">
+      <div class="backdrop-blur-xl bg-white/70 border border-gray-200/60 rounded-2xl shadow-glass shadow-glow-cyan/10 overflow-hidden">
         <div class="px-8 py-10">
-          <h1 class="text-4xl font-orbitron font-bold text-center mb-2 tracking-wider bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">
-            Student"Co
+
+          <!-- Typing title -->
+          <h1 class="text-4xl md:text-5xl font-orbitron font-bold text-center mb-2 tracking-wider min-h-[1.2em]">
+            <span id="typing" class="bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent"></span>
+            <span id="cursor" class="cursor inline-block w-4 h-8 bg-neon-cyan animate-blink ml-1 align-middle"></span>
           </h1>
-          <p class="text-center text-gray-400 mb-10 text-sm">Real-time identity sync • Powered by Firebase Realtime DB</p>
+
+          <p class="text-center text-text-muted mb-10 text-sm">Real-time identity sync • Powered by Firebase</p>
 
           <form id="studentForm" class="space-y-6">
-            <!-- First Name -->
             <div>
-              <label for="name" class="block text-sm font-medium text-gray-300 mb-1">First Name</label>
+              <label for="name" class="block text-sm font-medium text-text-muted mb-1">First Name</label>
               <input 
                 type="text" 
                 id="name" 
-                required
-                class="w-full px-4 py-3 bg-black/40 border border-neon-cyan/30 rounded-lg focus:outline-none focus:border-neon-cyan focus:shadow-glow-sm focus:shadow-glow-cyan transition-all duration-300 text-white placeholder-gray-500"
-                placeholder="e.g. Lethabo"
+                required 
+                class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-neon-cyan focus:shadow-glow-sm focus:shadow-glow-cyan transition-all duration-300 text-text-dark placeholder-gray-400"
+                placeholder="e.g. Lethabo" 
               />
             </div>
 
-            <!-- Surname -->
             <div>
-              <label for="surname" class="block text-sm font-medium text-gray-300 mb-1">Surname</label>
+              <label for="surname" class="block text-sm font-medium text-text-muted mb-1">Surname</label>
               <input 
                 type="text" 
                 id="surname" 
-                required
-                class="w-full px-4 py-3 bg-black/40 border border-neon-cyan/30 rounded-lg focus:outline-none focus:border-neon-cyan focus:shadow-glow-sm focus:shadow-glow-cyan transition-all duration-300 text-white placeholder-gray-500"
-                placeholder="e.g. Nkosi"
+                required 
+                class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-neon-cyan focus:shadow-glow-sm focus:shadow-glow-cyan transition-all duration-300 text-text-dark placeholder-gray-400"
+                placeholder="e.g. Nkosi" 
               />
             </div>
 
-            <!-- Student ID (used as key) -->
             <div>
-              <label for="studentId" class="block text-sm font-medium text-gray-300 mb-1">Student ID</label>
+              <label for="studentId" class="block text-sm font-medium text-text-muted mb-1">Student ID</label>
               <input 
                 type="text" 
                 id="studentId" 
-                required
-                class="w-full px-4 py-3 bg-black/40 border border-neon-cyan/30 rounded-lg focus:outline-none focus:border-neon-cyan focus:shadow-glow-sm focus:shadow-glow-cyan transition-all duration-300 text-white placeholder-gray-500"
-                placeholder="e.g. STU-2026-0042 or 2005123456789"
+                required 
+                class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-neon-cyan focus:shadow-glow-sm focus:shadow-glow-cyan transition-all duration-300 text-text-dark placeholder-gray-400"
+                placeholder="e.g. STU-2026-0042" 
               />
             </div>
 
-            <!-- Submit -->
             <button 
               type="submit"
-              class="w-full py-4 bg-gradient-to-r from-neon-cyan to-neon-purple rounded-lg font-medium text-lg shadow-glow-md shadow-glow-purple hover:shadow-glow-md hover:shadow-glow-cyan transform hover:scale-[1.02] transition-all duration-300"
+              class="w-full py-4 bg-gradient-to-r from-neon-cyan to-neon-purple rounded-lg font-medium text-lg text-white shadow-glow-md shadow-glow-purple hover:shadow-glow-md hover:shadow-glow-cyan transform hover:scale-[1.02] transition-all duration-300"
             >
-              Capture →
+              Sync Profile →
             </button>
           </form>
 
@@ -136,66 +133,87 @@
         </div>
       </div>
 
-      <p class="text-center text-gray-500 text-xs mt-8">Student Co © 2026 • Realtime Database Edition</p>
+      <p class="text-center text-gray-500 text-xs mt-8">Student"Co" © 2026 • Realtime Edition</p>
     </div>
   </div>
 
-  <!-- Form logic with Realtime Database -->
+  <!-- Typing animation + form logic -->
   <script type="module">
+    // Typing Animation
+    const typingElement = document.getElementById('typing');
+    const cursorElement = document.getElementById('cursor');
+    const text = 'Student"Co"';
+    let index = 0;
+
+    function type() {
+      if (index < text.length) {
+        typingElement.textContent += text.charAt(index);
+        index++;
+        setTimeout(type, 120);
+      } else {
+        cursorElement.style.display = 'none';
+      }
+    }
+
+    window.addEventListener('load', () => {
+      setTimeout(type, 800);
+    });
+
+    // Form submission
     const form = document.getElementById('studentForm');
     const message = document.getElementById('message');
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const name     = document.getElementById('name').value.trim();
-      const surname  = document.getElementById('surname').value.trim();
+      const name      = document.getElementById('name').value.trim();
+      const surname   = document.getElementById('surname').value.trim();
       const studentId = document.getElementById('studentId').value.trim();
 
       if (!name || !surname || !studentId) {
-        showMessage('Complete all fields to sync.', 'text-red-400');
+        showMessage('Complete all fields to sync.', 'text-red-500');
         return;
       }
 
-      // Path: students/{studentId}
       const studentRef = ref(db, `students/${studentId}`);
 
       try {
         await set(studentRef, {
           name,
           surname,
-          studentId,           // stored for convenience
+          studentId,
           createdAt: serverTimestamp(),
-          // Add more later: grade, class, photoUrl, lastSync, etc.
         });
-
-        showMessage('Profile synced in real-time! Welcome aboard.', 'text-neon-cyan');
+        showMessage('Profile synced in real-time!', 'text-neon-cyan');
         form.reset();
       } catch (error) {
         console.error("Save error:", error);
-        showMessage('Sync failed — check console or rules.', 'text-red-400');
+        showMessage('Sync failed — check console.', 'text-red-500');
       }
     });
 
     function showMessage(text, colorClass) {
       message.textContent = text;
-      message.className = `mt-6 text-center text-sm ${colorClass}`;
+      message.className = `mt-6 text-center text-sm font-medium ${colorClass}`;
       message.classList.remove('hidden');
       setTimeout(() => message.classList.add('hidden'), 5000);
     }
   </script>
 
-  <!-- Pulse animation -->
+  <!-- Animations -->
   <style>
     @keyframes pulse-slow {
-      0%, 100% { opacity: 0.2; transform: scale(1); }
-      50%      { opacity: 0.35; transform: scale(1.05); }
+      0%, 100% { opacity: 0.15; transform: scale(1); }
+      50%      { opacity: 0.28; transform: scale(1.04); }
     }
-    .animate-pulse-slow {
-      animation: pulse-slow 18s infinite ease-in-out;
+    .animate-pulse-slow { animation: pulse-slow 20s infinite ease-in-out; }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0; }
     }
-    .delay-1000 {
-      animation-delay: 1s;
+    .animate-blink {
+      animation: blink 1s step-end infinite;
     }
   </style>
 </body>
